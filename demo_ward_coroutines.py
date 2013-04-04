@@ -124,17 +124,20 @@ def test_telnet_filter():
 # That seems to require some sort of monkey-patched http client.  See
 # demo_eventlet.
 
+import eventlet
+requests = eventlet.import_patched('requests')
+get = requests.get
+
+
 @coroutine 
 def fetch():
-    import eventlet
-    requests = eventlet.import_patched('requests')
     "coroutine that accepts urls and yields objects"
     ob = lambda x:x
     ob.url = 'x'
     while True:
         url = yield ob.url
         ob = requests.get(url)
-        print ob.url
+#        print ob.url
  
 
 from demo_deco import timeit
@@ -145,5 +148,14 @@ def g(func, urls):
     f = func()
     return [f.send('http://'+url) for url in urls]
     # Does the work sequentially.
+
+
+@timeit 
+def f(urls):
+    urls = ['http://'+u for u in urls]
+    pool = eventlet.GreenPool()
+    return [ob.url for ob in pool.imap(get, urls)]
+
+
 
 
